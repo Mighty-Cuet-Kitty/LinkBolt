@@ -390,12 +390,17 @@ app.get('/api/badges/:userId', (req, res) => {
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     console.log('[Server] Initializing Vite middleware...');
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-    console.log('[Server] Vite middleware mounted.');
+    try {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+        root: process.cwd(),
+      });
+      app.use(vite.middlewares);
+      console.log('[Server] Vite middleware mounted.');
+    } catch (viteError) {
+      console.error('[Server] Failed to initialize Vite:', viteError);
+    }
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
