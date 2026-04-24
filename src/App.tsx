@@ -1,0 +1,23 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LandingPage from './pages/Landing';
+import Dashboard from './pages/Dashboard';
+import ProfilePage from './pages/Profile';
+import ShowcasePage from './pages/Showcase';
+
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/showcase" element={<ShowcasePage />} />
+        <Route path="/u/:username" element={<ProfilePage />} />
+      </Routes>
+    </Router>
+  );
+}

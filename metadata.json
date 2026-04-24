@@ -1,0 +1,6 @@
+{
+  "name": "LinkBolt",
+  "description": "A highly customizable bio-link platform with real-time Discord presence, Spotify playback synchronization, and dynamic profile themes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
