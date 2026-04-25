@@ -1,6 +1,8 @@
 import express from 'express';
 import { createServer } from 'http';
-import { createServer as createViteServer } from 'vite';
+import { createServer as createViteServer, loadEnv } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
@@ -391,14 +393,29 @@ app.get('/api/badges/:userId', (req, res) => {
   if (process.env.NODE_ENV !== 'production') {
     console.log('[Server] Initializing Vite middleware...');
     try {
+      const mode = process.env.NODE_ENV || 'development';
+      const env = loadEnv(mode, process.cwd(), '');
+      
       const vite = await createViteServer({
-        server: { middlewareMode: true },
+        server: { 
+          middlewareMode: true,
+          hmr: process.env.DISABLE_HMR !== 'true'
+        },
         appType: 'spa',
         root: process.cwd(),
-        configFile: path.resolve(process.cwd(), 'vite.config.js'),
+        configFile: false,
+        plugins: [react(), tailwindcss()],
+        define: {
+          'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+        },
+        resolve: {
+          alias: {
+            '@': path.resolve(process.cwd(), './src'),
+          },
+        },
       });
       app.use(vite.middlewares);
-      console.log('[Server] Vite middleware mounted.');
+      console.log('[Server] Vite middleware mounted (inline config).');
     } catch (viteError) {
       console.error('[Server] Failed to initialize Vite:', viteError);
       console.log('[Server] Attempting to continue without Vite middleware...');
