@@ -1,22 +1,29 @@
 import express from 'express';
 import { createServer } from 'http';
-import { createServer as createViteServer, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
-import { initSocket, broadcastPresence } from './src/lib/socket.js';
-import { loadBots } from './src/lib/bot-loader.js';
-import db from './src/lib/db.js';
+import { createServer as createViteServer, loadEnv } from 'vite';
+import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+
+declare module 'express-session' {
+  interface SessionData {
+    userId: string;
+    spotifyState: string;
+  }
+}
+
+import { initSocket, broadcastPresence } from './src/lib/socket';
+import { loadBots } from './src/lib/bot-loader';
+import db from './src/lib/db';
 import axios from 'axios';
 import crypto from 'crypto';
-import './src/types.js';
-import { encrypt, decrypt } from './src/lib/encryption.js';
-import { getSpotifyPlayback } from './src/lib/spotify.js';
+import { encrypt, decrypt } from './src/lib/encryption';
+import { getSpotifyPlayback } from './src/lib/spotify';
 import multer from 'multer';
-import { broadcastSpotify } from './src/lib/socket.js';
-import { getLastfmData } from './src/lib/lastfm.js';
+import { broadcastSpotify } from './src/lib/socket';
+import { getLastfmData } from './src/lib/lastfm';
 import rateLimit from 'express-rate-limit';
 
 const PORT = 3000;
@@ -402,7 +409,7 @@ app.get('/api/badges/:userId', (req, res) => {
           hmr: process.env.DISABLE_HMR !== 'true'
         },
         appType: 'spa',
-        root: process.cwd(),
+        root: path.resolve(process.cwd()),
         configFile: false,
         plugins: [react(), tailwindcss()],
         define: {
@@ -410,7 +417,7 @@ app.get('/api/badges/:userId', (req, res) => {
         },
         resolve: {
           alias: {
-            '@': path.resolve(process.cwd(), './src'),
+            '@': path.resolve(process.cwd(), 'src'),
           },
         },
       });

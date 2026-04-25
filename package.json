@@ -9,12 +9,13 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "start": "tsx server.ts"
+    "start": "node --loader tsx server.ts"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
     "@types/dompurify": "^3.0.5",
+    "@types/express-session": "^1.19.0",
     "@types/multer": "^2.1.0",
     "@types/spotify-web-api-node": "^5.0.11",
     "@vitejs/plugin-react": "^5.0.4",
@@ -42,6 +43,7 @@
     "socket.io-client": "^4.8.3",
     "spotify-web-api-node": "^5.0.2",
     "tailwind-merge": "^3.5.0",
+    "tsx": "^4.21.0",
     "uuidv4": "^6.2.13",
     "vite": "^6.2.0"
   },
@@ -50,7 +52,6 @@
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.1.14",
-    "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
