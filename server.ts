@@ -3,9 +3,6 @@ import { createServer } from 'http';
 import path from 'path';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
-import { createServer as createViteServer, loadEnv } from 'vite';
-import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite';
 
 declare module 'express-session' {
   interface SessionData {
@@ -14,16 +11,16 @@ declare module 'express-session' {
   }
 }
 
-import { initSocket, broadcastPresence } from './src/lib/socket';
-import { loadBots } from './src/lib/bot-loader';
-import db from './src/lib/db';
+import { initSocket, broadcastPresence } from './src/lib/socket.js';
+import { loadBots } from './src/lib/bot-loader.js';
+import db from './src/lib/db.js';
 import axios from 'axios';
 import crypto from 'crypto';
-import { encrypt, decrypt } from './src/lib/encryption';
-import { getSpotifyPlayback } from './src/lib/spotify';
+import { encrypt, decrypt } from './src/lib/encryption.js';
+import { getSpotifyPlayback } from './src/lib/spotify.js';
 import multer from 'multer';
-import { broadcastSpotify } from './src/lib/socket';
-import { getLastfmData } from './src/lib/lastfm';
+import { broadcastSpotify } from './src/lib/socket.js';
+import { getLastfmData } from './src/lib/lastfm.js';
 import rateLimit from 'express-rate-limit';
 
 const PORT = 3000;
@@ -400,6 +397,10 @@ app.get('/api/badges/:userId', (req, res) => {
   if (process.env.NODE_ENV !== 'production') {
     console.log('[Server] Initializing Vite middleware...');
     try {
+      const { createServer: createViteServer, loadEnv } = await import('vite');
+      const react = (await import('@vitejs/plugin-react')).default;
+      const tailwindcss = (await import('@tailwindcss/vite')).default;
+
       const mode = process.env.NODE_ENV || 'development';
       const env = loadEnv(mode, process.cwd(), '');
       

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useParams } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
-import type { DiscordPresenceStatus, SpotifyPlayback } from '../types';
+import type { DiscordPresenceStatus, SpotifyPlayback } from '../types.js';
 import ReactMarkdown from 'react-markdown';
 import { Github, Twitter, Youtube, Instagram, Music, ExternalLink, Globe } from 'lucide-react';
 

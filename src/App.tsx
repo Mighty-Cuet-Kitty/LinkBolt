@@ -4,10 +4,10 @@
  */
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import LandingPage from './pages/Landing';
-import Dashboard from './pages/Dashboard';
-import ProfilePage from './pages/Profile';
-import ShowcasePage from './pages/Showcase';
+import LandingPage from './pages/Landing.js';
+import Dashboard from './pages/Dashboard.js';
+import ProfilePage from './pages/Profile.js';
+import ShowcasePage from './pages/Showcase.js';
 
 export default function App() {
   return (
