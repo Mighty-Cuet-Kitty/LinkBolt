@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Settings, Layout, Palette, User as UserIcon, LogOut, Save, Plus, Trash2, Sparkles, Music, Upload, BarChart3, Shield, GripVertical, Eye, EyeOff, ArrowUp, ArrowDown } from 'lucide-react';
-import { cn } from '../lib/utils.js';
+import { cn } from '../lib/utils';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {

@@ -1,6 +1,7 @@
 import express from 'express';
 import { createServer } from 'http';
 import path from 'path';
+import fs from 'fs';
 import session from 'express-session';
 import cookieParser from 'cookie-parser';
 
@@ -426,7 +427,23 @@ app.get('/api/badges/:userId', (req, res) => {
       console.log('[Server] Vite middleware mounted (inline config).');
     } catch (viteError) {
       console.error('[Server] Failed to initialize Vite:', viteError);
-      console.log('[Server] Attempting to continue without Vite middleware...');
+      console.log('[Server] Falling back to static serving if dist exists...');
+      
+      const distPath = path.join(process.cwd(), 'dist');
+      if (fs.existsSync(distPath)) {
+        app.use(express.static(distPath));
+        app.get('*', (req, res) => {
+          res.sendFile(path.join(distPath, 'index.html'));
+        });
+      } else {
+        app.get('/', (req, res) => {
+          res.status(500).send(`
+            <h1>Development Server Error</h1>
+            <p>Vite failed to start and no production build was found.</p>
+            <pre>${viteError instanceof Error ? viteError.stack : String(viteError)}</pre>
+          `);
+        });
+      }
     }
   } else {
     const distPath = path.join(process.cwd(), 'dist');
