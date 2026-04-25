@@ -32,11 +32,17 @@ This guide will help you set up and run LinkBolt on your local Linux server.
    ```bash
    cp .env.example .env
    ```
-   Edit `.env` and fill in your credentials:
-   - `DISCORD_CLIENT_ID` & `DISCORD_CLIENT_SECRET` (from Discord Developer Portal)
-   - `SPOTIFY_CLIENT_ID` & `SPOTIFY_CLIENT_SECRET` (from Spotify Developer Dashboard)
-   - `APP_URL`: Your server's URL (e.g., `http://your-ip:3000`)
-   - `SESSION_SECRET`: A long random string.
+   Edit `.env` and fill in your credentials. **IMPORTANT**: Do not use quotes around values unless they contain spaces.
+   - `DISCORD_CLIENT_ID` & `DISCORD_CLIENT_SECRET` (from [Discord Developer Portal](https://discord.com/developers/applications))
+   - `SPOTIFY_CLIENT_ID` & `SPOTIFY_CLIENT_SECRET` (from [Spotify Developer Dashboard](https://developer.spotify.com/dashboard))
+   - `APP_URL`: Your server's URL including protocol (e.g., `http://localhost:3000` or `https://your-domain.com`)
+   - `SESSION_SECRET`: A long random string for session encryption.
+   - `ENCRYPTION_KEY`: A 32-character string for database encryption.
+
+4. **Discord/Spotify Redirect URLs**:
+   In your developer dashboards, you **MUST** whitelist the following redirect URIs:
+   - Discord: `http://localhost:3000/auth/discord/callback` (Replace localhost with your domain if applicable)
+   - Spotify: `http://localhost:3000/auth/spotify/callback`
 
 ## 3. Starting the Application
 
