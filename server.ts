@@ -397,14 +397,15 @@ app.get('/api/badges/:userId', (req, res) => {
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const distPath = path.join(process.cwd(), 'dist');
+    const indexPath = path.join(distPath, 'index.html');
     
     // If dist exists and we are not explicitly in dev, prefer static serving
-    if (fs.existsSync(distPath) && process.env.VITE_DEV !== 'true') {
+    if (fs.existsSync(indexPath) && process.env.VITE_DEV !== 'true') {
       console.log('[Server] Production build found. Serving static files...');
       app.use(express.static(distPath));
       app.get('*', (req, res) => {
         if (req.path.startsWith('/api')) return;
-        res.sendFile(path.join(distPath, 'index.html'));
+        res.sendFile(indexPath);
       });
     } else {
       console.log('[Server] Initializing Vite middleware...');
@@ -429,22 +430,49 @@ app.get('/api/badges/:userId', (req, res) => {
         console.log('[Server] Vite middleware mounted.');
       } catch (viteError) {
         console.error('[Server] Failed to initialize Vite:', viteError);
-        if (fs.existsSync(distPath)) {
+        if (fs.existsSync(indexPath)) {
           console.log('[Server] Falling back to static dist...');
           app.use(express.static(distPath));
           app.get('*', (req, res) => {
             if (req.path.startsWith('/api')) return;
-            res.sendFile(path.join(distPath, 'index.html'));
+            res.sendFile(indexPath);
+          });
+        } else {
+          app.get('/', (req, res) => {
+            res.status(500).send(`
+              <div style="font-family: sans-serif; padding: 2rem; background: #fff1f2; min-height: 100vh;">
+                <h1 style="color: #be123c;">Server Initialization Error</h1>
+                <p>The development engine (Vite) failed to start, and no production build was found in <code>/dist</code>.</p>
+                
+                <div style="background: #fff; padding: 1rem; border: 1px solid #fda4af; border-radius: 0.5rem; margin: 1.5rem 0;">
+                  <strong style="display: block; margin-bottom: 0.5rem; color: #9f1239;">Underlying Error:</strong>
+                  <pre style="white-space: pre-wrap; font-size: 0.875rem; margin: 0;">${viteError instanceof Error ? viteError.stack : String(viteError)}</pre>
+                </div>
+
+                <h2 style="color: #9f1239; font-size: 1.25rem;">Next Steps to Fix:</h2>
+                <ol style="line-height: 1.6;">
+                  <li><strong>Fix Native Bindings:</strong> Run <code>npm install --force</code> in your terminal. This fixes the common Tailwind/Oxide error on Linux.</li>
+                  <li><strong>Build Frontend:</strong> Run <code>npm run build</code> to generate the files the server is looking for.</li>
+                  <li><strong>Check Node Version:</strong> Ensure you are on Node.js 20+ (<code>node -v</code>).</li>
+                </ol>
+                <p style="color: #64748b; font-size: 0.875rem; margin-top: 2rem;">Refresh this page after trying the fixes.</p>
+              </div>
+            `);
           });
         }
       }
     }
   } else {
     const distPath = path.join(process.cwd(), 'dist');
+    const indexPath = path.join(distPath, 'index.html');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
       if (req.path.startsWith('/api')) return;
-      res.sendFile(path.join(distPath, 'index.html'));
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).send('Production build not found. Run npm run build.');
+      }
     });
   }
 
