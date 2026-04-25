@@ -451,9 +451,9 @@ app.get('/api/badges/:userId', (req, res) => {
 
                 <h2 style="color: #9f1239; font-size: 1.25rem;">Next Steps to Fix:</h2>
                 <ol style="line-height: 1.6;">
-                  <li><strong>Fix Native Bindings:</strong> Run <code>npm install --force</code> in your terminal. This fixes the common Tailwind/Oxide error on Linux.</li>
-                  <li><strong>Build Frontend:</strong> Run <code>npm run build</code> to generate the files the server is looking for.</li>
-                  <li><strong>Check Node Version:</strong> Ensure you are on Node.js 20+ (<code>node -v</code>).</li>
+                  <li><strong>Fix Tailwind Native Bindings:</strong> Run <code>npm install @tailwindcss/oxide-linux-x64-gnu</code> (for standard Linux) or <code>npm install @tailwindcss/oxide-linux-arm64-gnu</code> (for ARM).</li>
+                  <li><strong>Build Frontend:</strong> After fixing the bindings, run <code>npm run build</code>.</li>
+                  <li><strong>Check Node Version:</strong> Ensure you are on Node.js 20+ if you want to use the live development engine.</li>
                 </ol>
                 <p style="color: #64748b; font-size: 0.875rem; margin-top: 2rem;">Refresh this page after trying the fixes.</p>
               </div>

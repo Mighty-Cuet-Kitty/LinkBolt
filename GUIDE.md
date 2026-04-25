@@ -64,16 +64,23 @@ If you see errors starting Vite in dev mode, use this method. It pre-builds the 
 This is caused by a conflict between Node 18's ESM loader and Vite. 
 - **Fix**: Upgrade to Node 20+ OR use the **Production Mode** (Build then Start) described above.
 
-### "Error: Cannot find native binding" (Tailwind CSS Fix)
-If you see this error during `npm run build` or `npm run dev`, it means Tailwind's native engine failed to install for your architecture.
-- **Fix**:
-  ```bash
-  # Delete existing modules
-  rm -rf node_modules package-lock.json
-  # Force a clean install
-  npm install
-  ```
-  If you are on an older OS, you may need to install `libc6` or similar build tools.
+### "Error: Cannot find native binding" (Tailwind CSS v4 Fix)
+This is a common issue with Tailwind v4's new Rust-based engine on Linux. 
+
+**The Fix:**
+1. Manually install the native binding for your architecture:
+   ```bash
+   # For standard 64-bit Linux (most servers)
+   npm install @tailwindcss/oxide-linux-x64-gnu
+   
+   # For ARM64 Linux (like Raspberry Pi or Oracle ARM)
+   npm install @tailwindcss/oxide-linux-arm64-gnu
+   ```
+2. If that fails, try a clean install:
+   ```bash
+   rm -rf node_modules package-lock.json
+   npm install
+   ```
 
 ### "Cannot GET /" or No CSS
 This happens if the server starts but Vite fails to mount. 
