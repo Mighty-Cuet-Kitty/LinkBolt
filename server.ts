@@ -422,17 +422,7 @@ app.get('/api/badges/:userId', (req, res) => {
             hmr: process.env.DISABLE_HMR !== 'true'
           },
           appType: 'spa',
-          root: process.cwd(),
-          configFile: false,
-          plugins: [react(), tailwindcss()],
-          define: {
-            'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-          },
-          resolve: {
-            alias: {
-              '@': path.resolve(process.cwd(), 'src'),
-            },
-          },
+          root: process.cwd()
         });
         
         app.use(vite.middlewares);
