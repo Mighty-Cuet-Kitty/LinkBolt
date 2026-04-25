@@ -152,12 +152,12 @@ app.get('/api/badges/:userId', (req, res) => {
   // Static uploads
   app.use('/uploads', express.static('uploads'));
 
-  // API Routes
-  app.get('/api/me', (req, res) => {
+  // User API
+  app.get(['/api/me', '/api/user'], (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.session.userId);
+    const user = db.prepare('SELECT id, discordId, username, discriminator, avatar, createdAt FROM users WHERE id = ?').get(req.session.userId);
     res.json(user);
   });
 
@@ -293,17 +293,37 @@ app.get('/api/badges/:userId', (req, res) => {
   app.post('/api/profiles', (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     const id = crypto.randomUUID();
-    const { displayName, customUsername } = req.body;
+    let { displayName, customUsername } = req.body;
     
+    // Slug validation
+    if (customUsername) {
+      customUsername = customUsername.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+      const existing = db.prepare('SELECT id FROM profiles WHERE customUsername = ?').get(customUsername);
+      if (existing) return res.status(400).json({ error: 'Username already taken' });
+    } else {
+      customUsername = `user_${id.substring(0, 8)}`;
+    }
+
     try {
       db.prepare(`
         INSERT INTO profiles (id, userId, customUsername, displayName, bio, backgroundType, backgroundValue, theme, badges, socials, layout)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(id, req.session.userId, customUsername || `user_${id.substring(0, 8)}`, displayName || 'New Profile', '', 'gradient', 'linear-gradient(to right, #6366f1, #a855f7)', '{}', '[]', '[]', '{}');
+      `).run(id, req.session.userId, customUsername, displayName || 'New Profile', '', 'gradient', 'linear-gradient(to right, #6366f1, #a855f7)', '{}', '[]', '[]', '{}');
       res.json({ id });
     } catch (err) {
+      console.error('Create profile error:', err);
       res.status(500).json({ error: 'Failed to create profile' });
     }
+  });
+
+  app.delete('/api/profiles/:id', (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    const { id } = req.params;
+    
+    const result = db.prepare('DELETE FROM profiles WHERE id = ? AND userId = ?').run(id, req.session.userId);
+    if (result.changes === 0) return res.status(404).json({ error: 'Profile not found' });
+    
+    res.json({ success: true });
   });
 
   app.post('/api/profile/save', (req, res) => {
@@ -388,10 +408,12 @@ app.get('/api/badges/:userId', (req, res) => {
 
       req.session.userId = user.id;
       
-      res.send(`<html><body><script>window.opener.postMessage({ type: 'OAUTH_AUTH_SUCCESS' }, '*'); window.close();</script></body></html>`);
+      console.log(`[OAuth] Login successful for user: ${discordUser.username} (${user.id})`);
+      res.redirect('/dashboard');
     } catch (err) {
       console.error('Discord Auth Error:', err);
-      res.status(500).send('Authentication failed');
+      const errorMessage = err instanceof Error ? encodeURIComponent(err.message) : 'unknown';
+      res.redirect(`/login?error=${errorMessage}`);
     }
   });
 

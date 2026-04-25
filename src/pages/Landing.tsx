@@ -36,7 +36,7 @@ export default function LandingPage() {
                 fetch('/api/auth/discord/url')
                   .then(r => r.json())
                   .then(data => {
-                    const w = window.open(data.url, 'discord-auth', 'width=600,height=800');
+                    window.location.href = data.url;
                   });
               }}
               className="w-full sm:w-auto px-8 py-4 bg-white text-black font-bold rounded-xl hover:bg-white/90 transition-all transform hover:scale-105 active:scale-95"

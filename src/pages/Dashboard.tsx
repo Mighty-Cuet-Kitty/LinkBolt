@@ -5,6 +5,8 @@ import { Settings, Layout, Palette, User as UserIcon, LogOut, Save, Plus, Trash2
 import { cn } from '../lib/utils';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
+import { ProfileLayout } from '../components/ProfileLayout';
+
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -16,6 +18,8 @@ export default function Dashboard() {
   const [integrations, setIntegrations] = useState<any[]>([]);
   const [lastfmUser, setLastfmUser] = useState('');
   const [moderationMsgs, setModerationMsgs] = useState<any[]>([]);
+  const [presence, setPresence] = useState<any>(null);
+  const [spotify, setSpotify] = useState<any>(null);
   const navigate = useNavigate();
 
   const fetchProfiles = async () => {
@@ -197,8 +201,38 @@ export default function Dashboard() {
     if (res.ok) {
       await fetchProfiles();
       setActiveTab('profile');
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Failed to create profile');
     }
   };
+
+  const handleDeleteProfile = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this profile? This cannot be undone.')) return;
+    const res = await fetch(`/api/profiles/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setAllProfiles(allProfiles.filter(p => p.id !== id));
+      if (profile?.id === id) {
+        setProfile(null);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return;
+    
+    // Connect to presence socket for preview
+    const socket = (window as any).io?.() || { on: () => {}, emit: () => {}, disconnect: () => {} };
+    if ((window as any).io) {
+      socket.emit('subscribe', user.discordId);
+      socket.on('presence', (p: any) => setPresence(p));
+      socket.on('spotify', (s: any) => setSpotify(s));
+    }
+
+    return () => {
+      if (socket.disconnect) socket.disconnect();
+    };
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex">
@@ -226,16 +260,23 @@ export default function Dashboard() {
            <p className="px-4 text-[10px] font-black uppercase text-white/20 tracking-widest mb-4">Saved Profiles</p>
            <div className="space-y-1">
               {allProfiles.map(p => (
-                <button 
-                  key={p.id}
-                  onClick={() => setProfile(p)}
-                  className={cn(
-                    "w-full text-left px-4 py-2 text-sm rounded-lg transition-all",
-                    profile?.id === p.id ? "bg-white/10 text-white font-bold" : "text-white/40 hover:bg-white/5 hover:text-white"
-                  )}
-                >
-                  {p.displayName}
-                </button>
+                <div key={p.id} className="group relative">
+                  <button 
+                    onClick={() => setProfile(p)}
+                    className={cn(
+                      "w-full text-left px-4 py-2 text-sm rounded-lg transition-all pr-10",
+                      profile?.id === p.id ? "bg-white/10 text-white font-bold" : "text-white/40 hover:bg-white/5 hover:text-white"
+                    )}
+                  >
+                    {p.displayName}
+                  </button>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); handleDeleteProfile(p.id); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-white/0 group-hover:text-red-500/60 hover:text-red-500 transition-all"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               ))}
               <button 
                 onClick={handleCreateProfile}
@@ -701,29 +742,107 @@ export default function Dashboard() {
             ))}
           </div>
         )}
+
+        {activeTab === 'settings' && user && (
+          <div className="max-w-2xl space-y-12">
+            <Section title="Account Settings">
+               <div className="bg-white/5 border border-white/10 rounded-2xl p-8 flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                     <img src={`https://cdn.discordapp.com/avatars/${user.discordId}/${user.avatar}.png`} className="w-16 h-16 rounded-full border-2 border-white/10" />
+                     <div>
+                        <h3 className="text-xl font-bold">{user.username}<span className="text-white/20">#{user.discriminator}</span></h3>
+                        <p className="text-sm text-white/40">Linked via Discord</p>
+                     </div>
+                  </div>
+                  <button className="px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-bold uppercase hover:bg-white/10">Change Avatar</button>
+               </div>
+
+               <div className="grid grid-cols-2 gap-8">
+                  <Input label="Site Username" value={user.username || ''} disabled containerClass="opacity-50" />
+                  <Input label="Primary Email" placeholder="Not connected" disabled containerClass="opacity-50" />
+               </div>
+            </Section>
+
+            <Section title="Security & Sessions">
+               <div className="space-y-4">
+                  <div className="p-6 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between">
+                     <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 bg-indigo-500/20 rounded-lg flex items-center justify-center">
+                           <Shield className="w-5 h-5 text-indigo-400" />
+                        </div>
+                        <div>
+                           <p className="font-bold text-sm">Current Session</p>
+                           <p className="text-[10px] text-white/40 uppercase tracking-widest font-black">Active Now</p>
+                        </div>
+                     </div>
+                     <span className="px-3 py-1 bg-green-500/10 text-green-400 text-[10px] font-black uppercase rounded-full">Secure</span>
+                  </div>
+                  <button className="w-full py-4 border border-red-500/20 text-red-500 hover:bg-red-500/10 rounded-xl transition-all text-xs font-black uppercase tracking-widest">
+                     Logout of all devices
+                  </button>
+               </div>
+            </Section>
+          </div>
+        )}
       </main>
 
       {/* Live Preview Pane */}
       <div className="w-[450px] border-l border-white/5 bg-[#050505] hidden xl:flex flex-col">
          <div className="p-4 border-b border-white/5 flex items-center justify-between">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Live Preview</span>
-            <Link to={`/u/${profile?.customUsername}`} target="_blank" className="text-white/40 hover:text-white"><ExternalLinkSmall /></Link>
+            <Link to={`/u/${profile?.customUsername}`} target="_blank" className="text-white/40 hover:text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+               Visit Page <ExternalLinkSmall />
+            </Link>
          </div>
-         <div className="flex-1 p-8">
-            {/* Mock Iframe viewport */}
-            <div className="w-full h-full rounded-[2.5rem] border-[8px] border-[#1a1a1a] bg-black overflow-hidden shadow-2xl relative">
-               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-[#1a1a1a] rounded-b-2xl z-20" />
-               <div className="w-full h-full bg-gradient-to-br from-indigo-900 to-black p-6 flex flex-col items-center justify-center text-center">
-                  <div className="w-20 h-20 rounded-full bg-white/10 mb-4 border border-white/20 overflow-hidden">
-                     <img src={`https://cdn.discordapp.com/avatars/${user?.discordId}/${user?.avatar}.png`} className="w-full h-full object-cover" />
+         <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
+            {/* Real high-fidelity preview */}
+            <div className="w-full min-h-[800px] rounded-[3rem] border-[12px] border-[#1a1a1a] bg-black overflow-hidden shadow-2xl relative">
+               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-7 bg-[#1a1a1a] rounded-b-3xl z-20" />
+               
+               {profile ? (
+                  <div 
+                    className="w-full min-h-full p-8 flex flex-col items-center relative"
+                    style={{ 
+                      fontFamily: profile.theme.fontFamily || 'inherit',
+                      color: profile.theme.textColor || '#ffffff',
+                      background: profile.backgroundType === 'gradient' ? profile.backgroundValue : (profile.theme.backgroundColor || 'black'),
+                      backgroundImage: profile.backgroundType === 'image' ? `url(${profile.backgroundValue})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center'
+                    }}
+                  >
+                     {/* Background Video for Preview */}
+                     {profile.backgroundType === 'video' && (
+                        <video autoPlay muted loop className="absolute inset-0 w-full h-full object-cover z-0 opacity-40" src={profile.backgroundValue} />
+                     )}
+                     <div className="absolute inset-0 bg-black/30 backdrop-blur-[1px] z-[1]" />
+                     
+                     <div className="relative z-10 flex flex-col items-center w-full">
+                        <div className="w-24 h-24 rounded-full mb-6 border-4 shadow-xl overflow-hidden" style={{ borderColor: `${profile.theme.accentColor || '#6366f1'}40` }}>
+                           <img src={profile.pfpOverride || `https://cdn.discordapp.com/avatars/${user?.discordId}/${user?.avatar}.png`} className="w-full h-full object-cover" />
+                        </div>
+                        <h4 className="text-2xl font-bold mb-1">{profile.displayName}</h4>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-8">@{profile.customUsername}</p>
+                        
+                        <ProfileLayout 
+                           profile={profile} 
+                           theme={profile.theme} 
+                           accentColor={profile.theme.accentColor} 
+                           presence={presence} 
+                           spotify={spotify} 
+                           messages={[]} 
+                           newMsg={{}} 
+                           setNewMsg={() => {}} 
+                           handleSendGuestbook={() => {}} 
+                           isPreview={true}
+                        />
+                     </div>
                   </div>
-                  <div className="h-4 w-32 bg-white/20 rounded-full mb-2" />
-                  <div className="h-3 w-48 bg-white/10 rounded-full mb-6" />
-                  <div className="space-y-2 w-full">
-                     <div className="h-10 w-full bg-white/5 border border-white/10 rounded-lg" />
-                     <div className="h-10 w-full bg-white/5 border border-white/10 rounded-lg" />
+               ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white/20 font-black uppercase text-xs tracking-widest px-12 text-center">
+                     Select a profile to see preview
                   </div>
-               </div>
+               )}
             </div>
          </div>
       </div>
