@@ -396,59 +396,64 @@ app.get('/api/badges/:userId', (req, res) => {
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
-    console.log('[Server] Initializing Vite middleware...');
-    try {
-      const { createServer: createViteServer, loadEnv } = await import('vite');
-      const react = (await import('@vitejs/plugin-react')).default;
-      const tailwindcss = (await import('@tailwindcss/vite')).default;
-
-      const mode = process.env.NODE_ENV || 'development';
-      const env = loadEnv(mode, process.cwd(), '');
-      
-      const vite = await createViteServer({
-        server: { 
-          middlewareMode: true,
-          hmr: process.env.DISABLE_HMR !== 'true'
-        },
-        appType: 'spa',
-        root: path.resolve(process.cwd()),
-        configFile: false,
-        plugins: [react(), tailwindcss()],
-        define: {
-          'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        },
-        resolve: {
-          alias: {
-            '@': path.resolve(process.cwd(), 'src'),
-          },
-        },
+    const distPath = path.join(process.cwd(), 'dist');
+    
+    // If dist exists and we are not explicitly in dev, prefer static serving
+    if (fs.existsSync(distPath) && process.env.VITE_DEV !== 'true') {
+      console.log('[Server] Production build found. Serving static files...');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        if (req.path.startsWith('/api')) return;
+        res.sendFile(path.join(distPath, 'index.html'));
       });
-      app.use(vite.middlewares);
-      console.log('[Server] Vite middleware mounted (inline config).');
-    } catch (viteError) {
-      console.error('[Server] Failed to initialize Vite:', viteError);
-      console.log('[Server] Falling back to static serving if dist exists...');
-      
-      const distPath = path.join(process.cwd(), 'dist');
-      if (fs.existsSync(distPath)) {
-        app.use(express.static(distPath));
-        app.get('*', (req, res) => {
-          res.sendFile(path.join(distPath, 'index.html'));
+    } else {
+      console.log('[Server] Initializing Vite middleware...');
+      try {
+        const { createServer: createViteServer, loadEnv } = await import('vite');
+        const react = (await import('@vitejs/plugin-react')).default;
+        const tailwindcss = (await import('@tailwindcss/vite')).default;
+
+        const mode = process.env.NODE_ENV || 'development';
+        const env = loadEnv(mode, process.cwd(), '');
+        
+        const vite = await createViteServer({
+          server: { 
+            middlewareMode: true,
+            hmr: process.env.DISABLE_HMR !== 'true'
+          },
+          appType: 'spa',
+          root: process.cwd(),
+          configFile: false,
+          plugins: [react(), tailwindcss()],
+          define: {
+            'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+          },
+          resolve: {
+            alias: {
+              '@': path.resolve(process.cwd(), 'src'),
+            },
+          },
         });
-      } else {
-        app.get('/', (req, res) => {
-          res.status(500).send(`
-            <h1>Development Server Error</h1>
-            <p>Vite failed to start and no production build was found.</p>
-            <pre>${viteError instanceof Error ? viteError.stack : String(viteError)}</pre>
-          `);
-        });
+        
+        app.use(vite.middlewares);
+        console.log('[Server] Vite middleware mounted.');
+      } catch (viteError) {
+        console.error('[Server] Failed to initialize Vite:', viteError);
+        if (fs.existsSync(distPath)) {
+          console.log('[Server] Falling back to static dist...');
+          app.use(express.static(distPath));
+          app.get('*', (req, res) => {
+            if (req.path.startsWith('/api')) return;
+            res.sendFile(path.join(distPath, 'index.html'));
+          });
+        }
       }
     }
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*', (req, res) => {
+      if (req.path.startsWith('/api')) return;
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
