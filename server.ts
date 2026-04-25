@@ -395,11 +395,13 @@ app.get('/api/badges/:userId', (req, res) => {
         server: { middlewareMode: true },
         appType: 'spa',
         root: process.cwd(),
+        configFile: path.resolve(process.cwd(), 'vite.config.js'),
       });
       app.use(vite.middlewares);
       console.log('[Server] Vite middleware mounted.');
     } catch (viteError) {
       console.error('[Server] Failed to initialize Vite:', viteError);
+      console.log('[Server] Attempting to continue without Vite middleware...');
     }
   } else {
     const distPath = path.join(process.cwd(), 'dist');
