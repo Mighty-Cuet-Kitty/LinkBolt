@@ -70,13 +70,19 @@ export default function Dashboard() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        console.log('[Auth] Checking session...');
         const res = await fetch('/api/me');
-        if (!res.ok) throw new Error();
+        if (!res.ok) {
+          console.warn('[Auth] Session invalid or expired');
+          throw new Error('Unauthorized');
+        }
         const userData = await res.json();
+        console.log('[Auth] Logged in as:', userData.username);
         setUser(userData);
         
         await fetchProfiles();
       } catch (err) {
+        console.error('[Auth] Redirecting to landing - error:', err);
         navigate('/');
       } finally {
         setLoading(false);
@@ -246,6 +252,14 @@ export default function Dashboard() {
       if (socket.disconnect) socket.disconnect();
     };
   }, [user]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center font-mono uppercase tracking-[0.3em] text-xs">
+        Authenticating LinkBolt...
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white flex">

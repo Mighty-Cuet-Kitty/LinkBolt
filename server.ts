@@ -46,14 +46,16 @@ async function startServer() {
   });
   app.use('/api/', apiLimiter);
 
+  const isDev = process.env.VITE_DEV === 'true' || process.env.NODE_ENV !== 'production';
+
   app.use(session({
     secret: process.env.SESSION_SECRET || 'linkbolt-secret-123',
     resave: false,
     saveUninitialized: false,
-    proxy: true, // Enable proxy support
+    proxy: true, 
     cookie: {
-      secure: true,
-      sameSite: 'none',
+      secure: !isDev, // Only secure in non-dev (AI Studio production/preview is HTTPS)
+      sameSite: (isDev && !process.env.APP_URL?.startsWith('https')) ? 'lax' : 'none',
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 7 // 1 week
     }
@@ -374,7 +376,8 @@ app.get('/api/badges/:userId', (req, res) => {
 
   // OAuth Flows
   app.get('/api/auth/discord/url', (req, res) => {
-    const redirectUri = `${process.env.APP_URL || 'http://localhost:3000'}/auth/discord/callback`;
+    const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+    const redirectUri = `${baseUrl}/auth/discord/callback`;
     const url = `https://discord.com/api/oauth2/authorize?client_id=${process.env.DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=identify%20connections`;
     res.json({ url });
   });
@@ -384,7 +387,10 @@ app.get('/api/badges/:userId', (req, res) => {
     if (!code) return res.send('No code provided');
 
     try {
-      const redirectUri = `${process.env.APP_URL || 'http://localhost:3000'}/auth/discord/callback`;
+      const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+      const redirectUri = `${baseUrl}/auth/discord/callback`;
+      console.log(`[OAuth] Callback received. Redirecting back to: ${redirectUri}`);
+      
       const tokenResponse = await axios.post('https://discord.com/api/oauth2/token', new URLSearchParams({
         client_id: process.env.DISCORD_CLIENT_ID!,
         client_secret: process.env.DISCORD_CLIENT_SECRET!,
@@ -425,7 +431,13 @@ app.get('/api/badges/:userId', (req, res) => {
       req.session.userId = user.id;
       
       console.log(`[OAuth] Login successful for user: ${discordUser.username} (${user.id})`);
-      res.redirect('/dashboard');
+      req.session.save((err) => {
+        if (err) {
+          console.error('[Session] Error saving session:', err);
+          return res.redirect('/login?error=session_save_failed');
+        }
+        res.redirect('/dashboard');
+      });
     } catch (err) {
       console.error('Discord Auth Error:', err);
       const errorMessage = err instanceof Error ? encodeURIComponent(err.message) : 'unknown';
