@@ -161,6 +161,12 @@ app.get('/api/badges/:userId', (req, res) => {
     res.json(user);
   });
 
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy(() => {
+      res.json({ success: true });
+    });
+  });
+
   app.get('/api/u/:username', (req, res) => {
     const { username } = req.params;
     const profile = db.prepare(`
@@ -290,7 +296,7 @@ app.get('/api/badges/:userId', (req, res) => {
     res.json(profiles);
   });
 
-  app.post('/api/profiles', (req, res) => {
+  app.post(['/api/profiles', '/api/profile/create'], (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     const id = crypto.randomUUID();
     let { displayName, customUsername } = req.body;
@@ -316,7 +322,7 @@ app.get('/api/badges/:userId', (req, res) => {
     }
   });
 
-  app.delete('/api/profiles/:id', (req, res) => {
+  app.delete(['/api/profiles/:id', '/api/profile/delete/:id'], (req, res) => {
     if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
     const { id } = req.params;
     
@@ -326,17 +332,17 @@ app.get('/api/badges/:userId', (req, res) => {
     res.json({ success: true });
   });
 
-  app.post('/api/profile/save', (req, res) => {
+  app.post(['/api/profile/save', '/api/profile/update'], (req, res) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    const { id, displayName, customUsername, bio, socials, theme, backgroundType, backgroundValue } = req.body;
+    const { id, displayName, customUsername, bio, socials, theme, backgroundType, backgroundValue, layout } = req.body;
     
     try {
       db.prepare(`
         UPDATE profiles 
-        SET displayName = ?, customUsername = ?, bio = ?, socials = ?, theme = ?, backgroundType = ?, backgroundValue = ?
+        SET displayName = ?, customUsername = ?, bio = ?, socials = ?, theme = ?, backgroundType = ?, backgroundValue = ?, layout = ?
         WHERE id = ? AND userId = ?
       `).run(
         displayName, 
@@ -346,6 +352,7 @@ app.get('/api/badges/:userId', (req, res) => {
         JSON.stringify(theme), 
         backgroundType, 
         backgroundValue, 
+        JSON.stringify(layout),
         id,
         req.session.userId
       );
@@ -354,6 +361,15 @@ app.get('/api/badges/:userId', (req, res) => {
       console.error('Error saving profile:', err);
       res.status(500).json({ error: 'Failed to save profile' });
     }
+  });
+
+  app.put('/api/settings/update', (req, res) => {
+    if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ error: 'Username required' });
+    
+    db.prepare('UPDATE users SET username = ? WHERE id = ?').run(username, req.session.userId);
+    res.json({ success: true });
   });
 
   // OAuth Flows

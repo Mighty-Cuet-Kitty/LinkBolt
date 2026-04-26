@@ -192,11 +192,24 @@ export default function Dashboard() {
     alert(`Applied ${tpl.name} template! Remember to save.`);
   };
 
+  const handleLogout = async () => {
+    if (!confirm('Are you sure you want to sign out?')) return;
+    const res = await fetch('/api/auth/logout', { method: 'POST' });
+    if (res.ok) {
+       navigate('/');
+    }
+  };
+
   const handleCreateProfile = async () => {
+    const displayName = prompt('Enter a Display Name for this profile:', 'New Profile');
+    if (!displayName) return;
+    const customUsername = prompt('Enter a unique URL slug (lowercase, no spaces):', 'my-page');
+    if (!customUsername) return;
+
     const res = await fetch('/api/profiles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ displayName: 'New Profile' })
+      body: JSON.stringify({ displayName, customUsername })
     });
     if (res.ok) {
       await fetchProfiles();
@@ -287,7 +300,10 @@ export default function Dashboard() {
            </div>
         </div>
 
-        <button className="flex items-center gap-3 p-4 text-white/40 hover:text-red-400 transition-colors mt-auto">
+        <button 
+          onClick={handleLogout}
+          className="flex items-center gap-3 p-4 text-white/40 hover:text-red-400 transition-colors mt-auto"
+        >
           <LogOut className="w-5 h-5" />
           <span className="font-bold text-sm uppercase tracking-widest">Sign Out</span>
         </button>
@@ -573,7 +589,7 @@ export default function Dashboard() {
         )}
 
         {activeTab === 'integrations' && (
-          <div className="max-w-xl space-y-8">
+          <div className="max-w-2xl space-y-8">
             <div className="p-8 bg-green-500/10 border border-green-500/20 rounded-3xl flex items-center justify-between">
                <div className="flex items-center gap-6">
                   <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
@@ -598,7 +614,7 @@ export default function Dashboard() {
                     onClick={() => disconnectPlatform('spotify')}
                     className="p-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-all"
                    >
-                     <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-5 h-5" />
                    </button>
                  )}
                </div>
@@ -609,42 +625,45 @@ export default function Dashboard() {
                   <div className="w-12 h-12 bg-red-500 rounded-xl flex items-center justify-center">
                      <Music className="w-6 h-6 text-black" />
                   </div>
-                  <div className="flex-1">
+                  <div>
                      <h3 className="text-xl font-bold">Last.fm</h3>
-                     <input 
-                      type="text" 
-                      placeholder="Username" 
-                      value={lastfmUser}
-                      onChange={(e) => setLastfmUser(e.target.value)}
-                      className="bg-transparent border-b border-white/20 focus:border-white focus:outline-none text-sm py-1 w-full"
-                     />
+                     <p className="text-sm text-white/40">
+                        {integrations.find(i => i.platform === 'lastfm') ? `Connected as ${lastfmUser}` : 'Backtrack your music history.'}
+                     </p>
                   </div>
                </div>
-               <div className="flex gap-2">
-                 <button 
-                  onClick={async () => {
-                    const res = await fetch('/api/integrations/lastfm', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ username: lastfmUser })
-                    });
-                    if (res.ok) fetchIntegrations();
-                  }}
-                  className="px-6 py-3 bg-red-500 text-black font-black rounded-xl hover:bg-red-400 transition-all text-xs"
-                 >Save</button>
-                 {integrations.find(i => i.platform === 'lastfm') && (
-                   <button 
-                    onClick={() => disconnectPlatform('lastfm')}
-                    className="p-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-all"
-                   >
-                     <Trash2 className="w-5 h-5" />
-                   </button>
-                 )}
+               <div className="flex gap-4 items-center">
+                  {!integrations.find(i => i.platform === 'lastfm') ? (
+                    <div className="flex gap-2">
+                       <input 
+                        value={lastfmUser}
+                        onChange={(e) => setLastfmUser(e.target.value)}
+                        placeholder="Last.fm Username"
+                        className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs focus:outline-none"
+                       />
+                       <button 
+                        onClick={() => {
+                           fetch('/api/integrations/lastfm', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ username: lastfmUser })
+                           }).then(() => fetchIntegrations());
+                        }}
+                        className="px-4 py-2 bg-red-500 text-white font-bold rounded-xl text-xs"
+                       >Save</button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => disconnectPlatform('lastfm')}
+                      className="p-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500/20"
+                    >
+                       <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
                </div>
             </div>
           </div>
         )}
-
         {activeTab === 'moderation' && (
           <div className="space-y-6">
             {moderationMsgs.map((m: any) => (
